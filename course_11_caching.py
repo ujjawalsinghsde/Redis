@@ -371,3 +371,178 @@ print("""
 
 Modify the code and experiment!
 """)
+
+
+# ============================================================
+# PRACTICE: Solutions for Caching
+# ============================================================
+print("="*70)
+print("PRACTICE: Caching Exercises")
+print("="*70 + "\n")
+
+# 1. Implement cache-aside for user data
+print("1. Cache-aside for user data")
+print("-" * 70)
+
+def get_user_db(user_id):
+    print(f"  [DB] Loading user {user_id}")
+    time.sleep(0.2)
+    return {"id": user_id, "name": "Ujjawal Singh", "email": "ujjawal@example.com"}
+
+def get_user_cache_aside(user_id):
+    key = f"practice:user:{user_id}"
+    cached = r.get(key)
+    if cached:
+        print("  [CACHE HIT]")
+        return json.loads(cached)
+    print("  [CACHE MISS]")
+    user_data = get_user_db(user_id)
+    r.setex(key, 300, json.dumps(user_data))
+    return user_data
+
+print("  First call:")
+print("   ", get_user_cache_aside(user))
+print("  Second call:")
+print("   ", get_user_cache_aside(user))
+print()
+
+# 2. Build write-through for consistency
+print("2. Write-through for consistency")
+print("-" * 70)
+
+def write_through_user(user_id, data):
+    key = f"practice:write-through:{user_id}"
+    r.set(key, json.dumps(data))
+    time.sleep(0.1)  # simulate DB write
+    return True
+
+write_through_user(user, {"id": user, "name": "Ujjawal Singh", "email": "ujjawal.singh@example.com"})
+print("  Cached profile:", json.loads(r.get(f"practice:write-through:{user}")))
+print()
+
+# 3. Create cache invalidation on update
+print("3. Cache invalidation on update")
+print("-" * 70)
+profile_key = f"practice:profile:{user}"
+r.set(profile_key, json.dumps({"name": "Ujjawal", "version": 1}))
+print("  Before update:", json.loads(r.get(profile_key)))
+r.delete(profile_key)
+print("  After update (invalidated):", r.get(profile_key))
+print()
+
+# 4. Implement cache tags
+print("4. Cache tags")
+print("-" * 70)
+tag_namespace = f"cache-tags:{user}"
+r.delete(tag_namespace)
+r.set(f"cache:{user}:profile", "profile_data")
+r.set(f"cache:{user}:posts", "posts_data")
+r.set(f"cache:{user}:settings", "settings_data")
+r.sadd(tag_namespace, "profile", "posts", "settings")
+print("  Tags:", r.smembers(tag_namespace))
+for tag in r.smembers(tag_namespace):
+    print(f"   cache:{user}:{tag} ->", r.get(f"cache:{user}:{tag}"))
+print()
+
+# 5. Build cache versioning system
+print("5. Cache versioning system")
+print("-" * 70)
+config_v1_key = "practice:config:v1"
+config_v2_key = "practice:config:v2"
+r.set(config_v1_key, json.dumps({"feature_new": False, "limit": 100}))
+print("  v1:", json.loads(r.get(config_v1_key)))
+r.set(config_v2_key, json.dumps({"feature_new": True, "limit": 200}))
+r.delete(config_v1_key)
+print("  v2:", json.loads(r.get(config_v2_key)))
+print("  v1 after invalidation:", r.get(config_v1_key))
+print()
+
+# 6. Create cache metrics tracking
+print("6. Cache metrics tracking")
+print("-" * 70)
+r.set("practice:cache:hits", 0)
+r.set("practice:cache:misses", 0)
+for i in range(12):
+    if i % 4 == 0:
+        r.incr("practice:cache:misses")
+    else:
+        r.incr("practice:cache:hits")
+hits = int(r.get("practice:cache:hits"))
+misses = int(r.get("practice:cache:misses"))
+hit_rate = (hits / (hits + misses) * 100) if (hits + misses) else 0
+print(f"  Hits: {hits}")
+print(f"  Misses: {misses}")
+print(f"  Hit rate: {hit_rate:.1f}%")
+print()
+
+# 7. Implement multi-level cache
+print("7. Multi-level cache")
+print("-" * 70)
+L1 = "practice:cache:l1:user"
+L2 = "practice:cache:l2:user"
+r.delete(L1, L2)
+
+def get_multilevel_user(user_id):
+    l1_key = f"{L1}:{user_id}"
+    l2_key = f"{L2}:{user_id}"
+    cached = r.get(l1_key)
+    if cached:
+        print("  [L1 HIT]")
+        return json.loads(cached)
+    cached = r.get(l2_key)
+    if cached:
+        print("  [L2 HIT]")
+        r.setex(l1_key, 30, cached)
+        return json.loads(cached)
+    print("  [MISS]")
+    data = {"id": user_id, "name": "Ujjawal Singh", "tier": "premium"}
+    payload = json.dumps(data)
+    r.setex(l1_key, 30, payload)
+    r.setex(l2_key, 300, payload)
+    return data
+
+print("  First lookup:", get_multilevel_user(user))
+print("  Second lookup:", get_multilevel_user(user))
+print()
+
+# 8. Build cache warming system
+print("8. Cache warming system")
+print("-" * 70)
+warm_key = "practice:top-posts"
+top_posts = [
+    {"id": 1, "title": "Redis Basics"},
+    {"id": 2, "title": "Caching Patterns"},
+]
+r.setex(warm_key, 600, json.dumps(top_posts))
+print("  Warmed cache:", json.loads(r.get(warm_key)))
+print()
+
+# 9. Create cache garbage collection
+print("9. Cache garbage collection")
+print("-" * 70)
+gc_prefix = "practice:gc"
+r.set(f"{gc_prefix}:old:1", "old")
+r.set(f"{gc_prefix}:old:2", "old")
+r.set(f"{gc_prefix}:keep:1", "keep")
+for key in r.keys(f"{gc_prefix}:old:*"):
+    r.delete(key)
+print("  Remaining keys:", sorted(r.keys(f"{gc_prefix}:*")))
+print()
+
+# 10. Implement cache preview system
+print("10. Cache preview system")
+print("-" * 70)
+preview_key = "practice:preview:product:1"
+preview_data = {
+    "id": 1,
+    "name": "MacBook Pro",
+    "price": 1299.99,
+    "stock": 45,
+    "updated_at": str(time.time())
+}
+r.setex(preview_key, 120, json.dumps(preview_data))
+print("  Preview cache:", json.loads(r.get(preview_key)))
+print()
+
+print("ALL CACHING PRACTICE PROBLEMS COMPLETED")
+print("="*70)

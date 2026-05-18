@@ -83,7 +83,7 @@ leaderboard = "leaderboard:global"
 # Add players with scores
 r.zadd(leaderboard, {
     "ujjawal-singh": 1000,
-    "raj-singh": 950,
+    "alice-doe": 950,
     "priya-sharma": 1200,
     "john-doe": 800,
     "diana-prince": 1100
@@ -194,7 +194,7 @@ print("-" * 70)
 weekly = "leaderboard:weekly"
 r.zadd(weekly, {
     "ujjawal-singh": 500,
-    "raj-singh": 480,
+    "alice-doe": 480,
     "priya-sharma": 520
 })
 
@@ -202,7 +202,7 @@ r.zadd(weekly, {
 monthly = "leaderboard:monthly"
 r.zadd(monthly, {
     "ujjawal-singh": 2500,
-    "raj-singh": 2200,
+    "alice-doe": 2200,
     "priya-sharma": 2800
 })
 
@@ -367,3 +367,235 @@ Challenge: Build complete ranking system:
 
 Modify the code and experiment!
 """)
+
+
+# ============================================================
+# PRACTICE: Solutions for Sorted Sets
+# ============================================================
+print("="*70)
+print("PRACTICE: Sorted Sets Exercises")
+print("="*70 + "\n")
+
+# 1. Build a game leaderboard with 100 players
+print("1. Game leaderboard with 100 players")
+print("-" * 70)
+game_lb = "practice:game:leaderboard"
+r.delete(game_lb)
+r.zadd(game_lb, {f"player{i}": i * 10 for i in range(1, 101)})
+print("  Total players:", r.zcard(game_lb))
+print("  Top 5:")
+for rank, (player, score) in enumerate(r.zrevrange(game_lb, 0, 4, withscores=True), 1):
+  print(f"   {rank}. {player}: {int(score)}")
+print()
+
+# 2. Create weekly and monthly leaderboards
+print("2. Weekly and monthly leaderboards")
+print("-" * 70)
+weekly_lb = "practice:weekly:leaderboard"
+monthly_lb = "practice:monthly:leaderboard"
+r.delete(weekly_lb, monthly_lb)
+r.zadd(weekly_lb, {"alice": 120, "bob": 95, "carol": 140, "diana": 110})
+r.zadd(monthly_lb, {"alice": 480, "bob": 430, "carol": 520, "diana": 510})
+print("  Weekly top 3:")
+for rank, (player, score) in enumerate(r.zrevrange(weekly_lb, 0, 2, withscores=True), 1):
+  print(f"   {rank}. {player}: {int(score)}")
+print("  Monthly top 3:")
+for rank, (player, score) in enumerate(r.zrevrange(monthly_lb, 0, 2, withscores=True), 1):
+  print(f"   {rank}. {player}: {int(score)}")
+print()
+
+# 3. Track product ratings and get top 10
+print("3. Product ratings and top 10")
+print("-" * 70)
+ratings_lb = "practice:product:ratings"
+r.delete(ratings_lb)
+products = {
+  "laptop": 4.8,
+  "phone": 4.5,
+  "tablet": 4.2,
+  "monitor": 4.7,
+  "keyboard": 4.3,
+  "mouse": 4.1,
+  "headphones": 4.9,
+  "speaker": 4.4,
+  "camera": 4.6,
+  "watch": 4.0,
+  "charger": 3.9,
+}
+r.zadd(ratings_lb, products)
+print("  Top 10 products:")
+for rank, (product, rating) in enumerate(r.zrevrange(ratings_lb, 0, 9, withscores=True), 1):
+  print(f"   {rank}. {product}: {rating}/5.0")
+print()
+
+# 4. Build blog post popularity ranking
+print("4. Blog post popularity ranking")
+print("-" * 70)
+blog_lb = "practice:blog:popularity"
+r.delete(blog_lb)
+r.zadd(blog_lb, {
+  "post:redis-basics": 5400,
+  "post:python-tips": 3100,
+  "post:docker-guide": 7800,
+  "post:redis-streams": 6900,
+  "post:api-design": 4200,
+})
+print("  Top 3 blog posts:")
+for rank, (post_id, views) in enumerate(r.zrevrange(blog_lb, 0, 2, withscores=True), 1):
+  print(f"   {rank}. {post_id}: {int(views)} views")
+print()
+
+# 5. Create user engagement scores
+print("5. User engagement scores")
+print("-" * 70)
+engagement_lb = "practice:user:engagement"
+r.delete(engagement_lb)
+r.zadd(engagement_lb, {
+  "alice": 88.4,
+  "bob": 91.2,
+  "carol": 85.0,
+  "diana": 96.7,
+  "eric": 79.3,
+})
+print("  Engagement ranking:")
+for rank, (user_name, score) in enumerate(r.zrevrange(engagement_lb, 0, -1, withscores=True), 1):
+  print(f"   {rank}. {user_name}: {score}")
+print()
+
+# 6. Track API endpoint usage (most used)
+print("6. API endpoint usage")
+print("-" * 70)
+api_lb = "practice:api:usage"
+r.delete(api_lb)
+r.zadd(api_lb, {
+  "GET /api/users": 1200,
+  "GET /api/posts": 900,
+  "POST /api/login": 1500,
+  "GET /api/notifications": 700,
+  "POST /api/comments": 1100,
+})
+print("  Most used endpoints:")
+for rank, (endpoint, count) in enumerate(r.zrevrange(api_lb, 0, 2, withscores=True), 1):
+  print(f"   {rank}. {endpoint}: {int(count)} calls")
+print()
+
+# 7. Build a real-time ranking system
+print("7. Real-time ranking system")
+print("-" * 70)
+rt_lb = "practice:realtime:rankings"
+r.delete(rt_lb)
+r.zadd(rt_lb, {"alice": 50, "bob": 50, "carol": 50})
+updates = [
+  ("alice", 12),
+  ("bob", 30),
+  ("carol", 18),
+  ("alice", 25),
+]
+for player, delta in updates:
+  new_score = r.zincrby(rt_lb, delta, player)
+  print(f"  {player} +{delta} -> {int(new_score)}")
+print("  Current ranking:")
+for rank, (player, score) in enumerate(r.zrevrange(rt_lb, 0, -1, withscores=True), 1):
+  print(f"   {rank}. {player}: {int(score)}")
+print()
+
+# 8. Create skill-based user tiers
+print("8. Skill-based user tiers")
+print("-" * 70)
+tiers_lb = "practice:skill:tiers"
+r.delete(tiers_lb)
+r.zadd(tiers_lb, {
+  "junior": 100,
+  "mid": 300,
+  "senior": 600,
+  "expert": 900,
+  "master": 1200,
+})
+print("  Tiers by score:")
+for rank, (tier, score) in enumerate(r.zrevrange(tiers_lb, 0, -1, withscores=True), 1):
+  print(f"   {rank}. {tier}: {int(score)}")
+print()
+
+# 9. Track customer satisfaction scores
+print("9. Customer satisfaction scores")
+print("-" * 70)
+csat_lb = "practice:customer:satisfaction"
+r.delete(csat_lb)
+r.zadd(csat_lb, {
+  "customer:1001": 4.9,
+  "customer:1002": 3.8,
+  "customer:1003": 4.4,
+  "customer:1004": 2.9,
+  "customer:1005": 4.7,
+})
+print("  Top satisfaction scores:")
+for rank, (customer, rating) in enumerate(r.zrevrange(csat_lb, 0, -1, withscores=True), 1):
+  print(f"   {rank}. {customer}: {rating}/5.0")
+print()
+
+# 10. Build video view rankings
+print("10. Video view rankings")
+print("-" * 70)
+video_lb = "practice:video:views"
+r.delete(video_lb)
+r.zadd(video_lb, {
+  "video:python-101": 18000,
+  "video:redis-tutorial": 24000,
+  "video:docker-basics": 16200,
+  "video:system-design": 20100,
+  "video:sql-fundamentals": 15300,
+})
+print("  Top viewed videos:")
+for rank, (video_id, views) in enumerate(r.zrevrange(video_lb, 0, 4, withscores=True), 1):
+  print(f"   {rank}. {video_id}: {int(views)} views")
+print()
+
+# Challenge: complete ranking system
+print("CHALLENGE: Complete ranking system")
+print("-" * 70)
+daily_lb = "rankings:daily"
+weekly_lb2 = "rankings:weekly"
+monthly_lb2 = "rankings:monthly"
+for key in (daily_lb, weekly_lb2, monthly_lb2):
+  r.delete(key)
+
+players = ["alice", "bob", "carol", "diana", "eric", "frank", "grace", "henry", "ivy", "jack"]
+for index, player in enumerate(players, 1):
+  r.zadd(daily_lb, {player: index * 10})
+  r.zadd(weekly_lb2, {player: index * 50})
+  r.zadd(monthly_lb2, {player: index * 120})
+
+def print_top10(key, label):
+  print(f"  {label} top 10:")
+  for rank, (player, score) in enumerate(r.zrevrange(key, 0, 9, withscores=True), 1):
+    print(f"   {rank}. {player}: {int(score)}")
+
+def award_badge(rank_number):
+  if rank_number == 1:
+    return "gold"
+  if rank_number <= 3:
+    return "silver"
+  if rank_number <= 10:
+    return "bronze"
+  return "none"
+
+print_top10(daily_lb, "Daily")
+print_top10(weekly_lb2, "Weekly")
+print_top10(monthly_lb2, "Monthly")
+
+print("  Player ranks and badges:")
+for player in ["alice", "diana", "jack"]:
+  daily_rank = r.zrevrank(daily_lb, player) + 1
+  weekly_rank = r.zrevrank(weekly_lb2, player) + 1
+  monthly_rank = r.zrevrank(monthly_lb2, player) + 1
+  badge = award_badge(min(daily_rank, weekly_rank, monthly_rank))
+  print(f"   {player}: daily #{daily_rank}, weekly #{weekly_rank}, monthly #{monthly_rank}, badge={badge}")
+
+print("  Realtime update example:")
+updated_score = r.zincrby(daily_lb, 75, "alice")
+print(f"   alice new daily score: {int(updated_score)}")
+print(f"   alice new daily rank: #{r.zrevrank(daily_lb, 'alice') + 1}")
+print()
+
+print("ALL SORTED SET PRACTICE PROBLEMS COMPLETED")
+print("="*70)

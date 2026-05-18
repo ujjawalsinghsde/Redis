@@ -353,3 +353,182 @@ Note: For persistent messages, use Redis Streams!
 
 Modify the code and experiment!
 """)
+
+
+# ============================================================
+# PRACTICE: Solutions for Pub/Sub
+# ============================================================
+print("="*70)
+print("PRACTICE: Pub/Sub Exercises")
+print("="*70 + "\n")
+
+import json
+
+def wait_for_message(channel, output_list, label):
+  sub = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+  pubsub = sub.pubsub()
+  pubsub.subscribe(channel)
+  for message in pubsub.listen():
+    if message['type'] == 'message':
+      output_list.append((label, message['data']))
+      print(f"  [{label}] {message['data']}")
+      break
+
+# 1. Build real-time notification system
+print("1. Real-time notification system")
+print("-" * 70)
+notification_results = []
+notification_user = "ujjawal-singh"
+t = threading.Thread(target=wait_for_message, args=(f"notify:{notification_user}", notification_results, "Notify"), daemon=True)
+t.start()
+time.sleep(0.2)
+r.publish(f"notify:{notification_user}", "New follower: alice")
+t.join(timeout=2)
+print()
+
+# 2. Create live chat room
+print("2. Live chat room")
+print("-" * 70)
+chat_results = []
+t = threading.Thread(target=wait_for_message, args=("chat:room-1", chat_results, "Chat"), daemon=True)
+t.start()
+time.sleep(0.2)
+r.publish("chat:room-1", "ujjawal: Hello everyone!")
+t.join(timeout=2)
+print()
+
+# 3. Implement dashboard updates
+print("3. Dashboard updates")
+print("-" * 70)
+dashboard_results = []
+t = threading.Thread(target=wait_for_message, args=("dashboard:updates", dashboard_results, "Dashboard"), daemon=True)
+t.start()
+time.sleep(0.2)
+r.publish("dashboard:updates", "New signup: user@example.com")
+t.join(timeout=2)
+print()
+
+# 4. Build event bus for microservices
+print("4. Event bus for microservices")
+print("-" * 70)
+event_results = []
+t = threading.Thread(target=wait_for_message, args=("events:orders", event_results, "OrdersService"), daemon=True)
+t.start()
+time.sleep(0.2)
+r.publish("events:orders", json.dumps({"type": "order.created", "id": 123, "status": "new"}))
+t.join(timeout=2)
+print()
+
+# 5. Create status update broadcaster
+print("5. Status update broadcaster")
+print("-" * 70)
+status_results = []
+t = threading.Thread(target=wait_for_message, args=("status:system", status_results, "Status"), daemon=True)
+t.start()
+time.sleep(0.2)
+r.publish("status:system", "All systems operational")
+t.join(timeout=2)
+print()
+
+# 6. Implement real-time metrics viewer
+print("6. Real-time metrics viewer")
+print("-" * 70)
+metrics_results = []
+t = threading.Thread(target=wait_for_message, args=("metrics:live", metrics_results, "Metrics"), daemon=True)
+t.start()
+time.sleep(0.2)
+r.publish("metrics:live", json.dumps({"cpu": 67, "memory": 72, "requests_per_sec": 1450}))
+t.join(timeout=2)
+print()
+
+# 7. Build collaborative editor (cursor updates)
+print("7. Collaborative editor cursor updates")
+print("-" * 70)
+cursor_results = []
+t = threading.Thread(target=wait_for_message, args=("editor:cursors", cursor_results, "Cursor"), daemon=True)
+t.start()
+time.sleep(0.2)
+r.publish("editor:cursors", json.dumps({"user": "alice", "line": 12, "column": 8}))
+t.join(timeout=2)
+print()
+
+# 8. Create order status tracker
+print("8. Order status tracker")
+print("-" * 70)
+order_results = []
+t = threading.Thread(target=wait_for_message, args=("orders:status:123", order_results, "Orders"), daemon=True)
+t.start()
+time.sleep(0.2)
+r.publish("orders:status:123", "Order #123 shipped")
+t.join(timeout=2)
+print()
+
+# 9. Implement user presence system
+print("9. User presence system")
+print("-" * 70)
+presence_results = []
+t = threading.Thread(target=wait_for_message, args=("presence:users", presence_results, "Presence"), daemon=True)
+t.start()
+time.sleep(0.2)
+r.publish("presence:users", "ujjawal-singh is online")
+t.join(timeout=2)
+print()
+
+# 10. Build real-time score updates
+print("10. Real-time score updates")
+print("-" * 70)
+score_results = []
+t = threading.Thread(target=wait_for_message, args=("score:game-1", score_results, "Score"), daemon=True)
+t.start()
+time.sleep(0.2)
+r.publish("score:game-1", json.dumps({"player": "ujjawal-singh", "score": 42}))
+t.join(timeout=2)
+print()
+
+# Challenge: complete notification system
+print("CHALLENGE: Complete notification system")
+print("-" * 70)
+notifications_channel = "notify:ujjawal-singh"
+notifications_history_key = "history:notifications:ujjawal-singh"
+notifications_unread_key = "unread:notifications:ujjawal-singh"
+r.delete(notifications_history_key, notifications_unread_key)
+r.set(notifications_unread_key, 0)
+
+def send_notification(user_id, notification_type, message):
+  payload = json.dumps({
+    "user_id": user_id,
+    "type": notification_type,
+    "message": message,
+    "ts": str(time.time())
+  })
+  r.publish(f"notify:{user_id}", payload)
+  r.lpush(f"history:notifications:{user_id}", payload)
+  r.ltrim(f"history:notifications:{user_id}", 0, 49)
+  r.incr(f"unread:notifications:{user_id}")
+
+def notification_listener_for_challenge():
+  sub = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+  pubsub = sub.pubsub()
+  pubsub.subscribe(notifications_channel)
+  for message in pubsub.listen():
+    if message['type'] == 'message':
+      print(f"  [Instant] {message['data']}")
+      break
+
+listener = threading.Thread(target=notification_listener_for_challenge, daemon=True)
+listener.start()
+time.sleep(0.2)
+
+send_notification("ujjawal-singh", "like", "Someone liked your post")
+listener.join(timeout=2)
+send_notification("ujjawal-singh", "comment", "New comment on your post")
+send_notification("ujjawal-singh", "follow", "alice started following you")
+
+print("  Unread count:", r.get(notifications_unread_key))
+print("  History:")
+for entry in r.lrange(notifications_history_key, 0, -1):
+  print("   ", json.loads(entry))
+print()
+
+print("ALL PUB/SUB PRACTICE PROBLEMS COMPLETED")
+print("="*70)

@@ -252,3 +252,151 @@ Production Deployment Checklist:
 
 print("\nNote: This is a reference course. Actual RDB/AOF")
 print("configuration is in docker-compose.yml and redis.conf")
+
+
+# ============================================================
+# PRACTICE: Solutions for Persistence
+# ============================================================
+print("="*70)
+print("PRACTICE: Persistence Exercises")
+print("="*70 + "\n")
+
+import os
+import shutil
+from datetime import datetime
+
+# 1. Configure RDB snapshots
+print("1. Configure RDB snapshots")
+print("-" * 70)
+snapshot_config = {"save": "900 1 300 10 60 10000"}
+print("  Example redis.conf setting:")
+print(f"    save {snapshot_config['save']}")
+print("  RDB snapshot mode: enabled by policy")
+print()
+
+# 2. Enable and test AOF
+print("2. Enable and test AOF")
+print("-" * 70)
+print("  AOF setting to use in redis.conf:")
+print("    appendonly yes")
+print("    appendfsync everysec")
+print("  Current config from Redis:")
+print(f"    appendonly = {r.config_get('appendonly').get('appendonly')}")
+print()
+
+# 3. Create backup script
+print("3. Create backup script")
+print("-" * 70)
+backup_script = r"""#!/bin/sh
+set -e
+BACKUP_DIR=/backup/redis
+mkdir -p "$BACKUP_DIR"
+redis-cli BGSAVE
+cp /var/lib/redis/dump.rdb "$BACKUP_DIR/dump-$(date +%F-%H%M%S).rdb"
+cp /var/lib/redis/appendonly.aof "$BACKUP_DIR/appendonly-$(date +%F-%H%M%S).aof"
+find "$BACKUP_DIR" -type f -mtime +7 -delete
+"""
+print(backup_script)
+print()
+
+# 4. Simulate data loss and recovery
+print("4. Simulate data loss and recovery")
+print("-" * 70)
+recovery_key = "persistence:recover:test"
+r.set(recovery_key, "important-data")
+print("  Before simulated loss:", r.get(recovery_key))
+snapshot_path = os.path.join(os.getcwd(), "dump.rdb.simulated")
+with open(snapshot_path, "w", encoding="utf-8") as snapshot_file:
+  snapshot_file.write("simulated snapshot contents")
+print("  Snapshot copied to:", snapshot_path)
+r.delete(recovery_key)
+print("  After simulated loss:", r.get(recovery_key))
+r.set(recovery_key, "important-data")
+print("  After recovery:", r.get(recovery_key))
+print()
+
+# 5. Test replication setup
+print("5. Test replication setup")
+print("-" * 70)
+repl_info = r.info('replication')
+print("  Role:", repl_info.get('role'))
+print("  Connected replicas:", repl_info.get('connected_slaves', repl_info.get('connected_replicas', 'n/a')))
+print()
+
+# 6. Monitor persistence performance
+print("6. Monitor persistence performance")
+print("-" * 70)
+stats = r.info('stats')
+print("  rdb_last_save_time:", stats.get('rdb_last_save_time', 'n/a'))
+print("  rdb_changes_since_last_save:", stats.get('rdb_changes_since_last_save', 'n/a'))
+print("  aof_current_size:", stats.get('aof_current_size', 'n/a'))
+print("  used_memory_human:", stats.get('used_memory_human', 'n/a'))
+print()
+
+# 7. Implement backup retention
+print("7. Backup retention")
+print("-" * 70)
+backup_dir = os.path.join(os.getcwd(), "backup-retention-demo")
+os.makedirs(backup_dir, exist_ok=True)
+for i in range(3):
+  file_path = os.path.join(backup_dir, f"dump-{i}.rdb")
+  with open(file_path, "w", encoding="utf-8") as f:
+    f.write(f"backup {i} at {datetime.now()}")
+print("  Backups before cleanup:", sorted(os.listdir(backup_dir)))
+backups = sorted(
+  (os.path.join(backup_dir, name) for name in os.listdir(backup_dir)),
+  key=os.path.getmtime,
+  reverse=True,
+)
+for old_backup in backups[2:]:
+  os.remove(old_backup)
+print("  Backups after cleanup:", sorted(os.listdir(backup_dir)))
+print()
+
+# 8. Setup automated backups
+print("8. Automated backups")
+print("-" * 70)
+cron_job = "0 2 * * * /backup/backup-redis.sh"
+print("  Cron schedule:", cron_job)
+print("  Automation idea: run backup script daily at 2 AM")
+print()
+
+# 9. Test disaster recovery
+print("9. Disaster recovery test")
+print("-" * 70)
+critical_keys = {
+  "user:1": "alice",
+  "user:2": "bob",
+  "cart:1": "[{\"item\": \"laptop\", \"qty\": 1}]",
+}
+for key, value in critical_keys.items():
+  r.set(key, value)
+print("  Data before recovery test:", {k: r.get(k) for k in critical_keys})
+for key in critical_keys:
+  r.delete(key)
+print("  After wipe:", {k: r.get(k) for k in critical_keys})
+for key, value in critical_keys.items():
+  r.set(key, value)
+print("  After restore:", {k: r.get(k) for k in critical_keys})
+print()
+
+# 10. Create monitoring alerts
+print("10. Monitoring alerts")
+print("-" * 70)
+alerts_key = "monitoring:alerts"
+r.delete(alerts_key)
+alerts = [
+  "Alert: RDB snapshot failed",
+  "Alert: AOF file grew beyond threshold",
+  "Alert: Disk usage above 80%",
+  "Alert: Replication lag detected",
+]
+for alert in alerts:
+  r.lpush(alerts_key, alert)
+print("  Alerts queue:")
+for alert in r.lrange(alerts_key, 0, -1):
+  print("   -", alert)
+print()
+
+print("ALL PERSISTENCE PRACTICE PROBLEMS COMPLETED")
+print("="*70)

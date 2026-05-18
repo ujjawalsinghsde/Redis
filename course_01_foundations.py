@@ -47,7 +47,7 @@ THEORY:
    - Data is lost if server crashes (unless persisted)
 
 6. Use Cases:
-   A) Ujjawal Singh's Social Media App:
+   A) Social Media App:
       [OK] User sessions: store login info
       [OK] Cache: cache user profiles
       [OK] Notifications: pub/sub for new messages
@@ -81,7 +81,7 @@ r.flushdb()
 print(__doc__)
 
 print("\n" + "="*60)
-print("PRACTICAL EXAMPLE: Ujjawal Singh's Social Media App")
+print("PRACTICAL EXAMPLE: Social Media App")
 print("="*60 + "\n")
 
 # ============================================================
@@ -90,7 +90,7 @@ print("="*60 + "\n")
 print("EXAMPLE 1: Basic User Setup")
 print("-" * 60)
 
-# Let's create Ujjawal Singh's account
+# Let's create a user's account
 user_id = "ujjawal-singh"
 
 # Store basic info (we'll use STRINGS for now)
@@ -265,7 +265,7 @@ print("="*60)
 print("PRACTICE: Try These!")
 print("="*60)
 print("""
-1. Store Ujjawal Singh's followers in Redis with TTL of 24 hours
+1. Store followers in Redis with TTL of 24 hours
 2. Set an age that auto-expires in 60 seconds, check TTL
 3. Create a cache key that stores a JSON object
 4. Check what types Redis has for your stored keys
@@ -273,3 +273,52 @@ print("""
 
 Modify the code above and run it!
 """)
+
+print("="*60)
+print("PRACTICE: Solutions")
+print("="*60)
+
+# Task 1: Store followers with TTL of 24 hours
+followers_ttl_key = f"{user_id}:followers:24h"
+r.setex(followers_ttl_key, 24*3600, 150)
+print("1. Stored followers with 24h TTL:")
+print("   key:", followers_ttl_key)
+print("   value:", r.get(followers_ttl_key))
+print("   TTL (seconds):", r.ttl(followers_ttl_key))
+print()
+
+# Task 2: Set an age that auto-expires in 60 seconds, check TTL
+age_temp_key = f"{user_id}:age:temp"
+r.setex(age_temp_key, 60, 25)
+print("2. Set age with 60s TTL:")
+print("   key:", age_temp_key)
+print("   value:", r.get(age_temp_key))
+print("   TTL (seconds):", r.ttl(age_temp_key))
+print()
+
+# Task 3: Create a cache key that stores a JSON object
+cache_json_key = f"cache:user:{user_id}:profile"
+profile_obj = {'name': 'Ujjawal Singh', 'bio': 'Developer', 'last_active': str(datetime.now())}
+r.set(cache_json_key, json.dumps(profile_obj))
+print("3. Cached JSON object:")
+print("   key:", cache_json_key)
+print("   value:", json.loads(r.get(cache_json_key)))
+print()
+
+# Task 4: Check what types Redis has for your stored keys
+check_keys = [followers_ttl_key, age_temp_key, cache_json_key,
+              f"{user_id}:posts", f"{user_id}:tags", f"{user_id}:settings"]
+print("4. Types for selected keys:")
+for k in check_keys:
+    print("   ", k, "->", r.type(k))
+print()
+
+# Task 5: Create 3 different data types in Redis
+r.lpush(f"{user_id}:notifications", "notif:1")
+r.sadd(f"{user_id}:achievements", "first_post")
+r.hset(f"{user_id}:preferences", mapping={'lang': 'en', 'theme': 'light'})
+print("5. Created 3 different data types:")
+print("   notifications (list):", r.lrange(f"{user_id}:notifications", 0, -1))
+print("   achievements (set):", r.smembers(f"{user_id}:achievements"))
+print("   preferences (hash):", r.hgetall(f"{user_id}:preferences"))
+print()

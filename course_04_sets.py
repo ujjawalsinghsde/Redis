@@ -123,11 +123,11 @@ print("-" * 70)
 r.sadd(f"{user}:interests", "python", "javascript", "music", "gaming")
 
 # Friend's interests
-friend = "raj-singh"
+friend = "alice-doe"
 r.sadd(f"{friend}:interests", "python", "java", "music", "movies")
 
 print(f"Ujjawal interests: {r.smembers(f'{user}:interests')}")
-print(f"Raj interests: {r.smembers(f'{friend}:interests')}")
+print(f"Alice interests: {r.smembers(f'{friend}:interests')}")
 
 # Find common interests (intersection)
 common = r.sinter(f"{user}:interests", f"{friend}:interests")
@@ -183,15 +183,15 @@ print("8. REAL-WORLD: Friend Suggestions")
 print("-" * 70)
 
 # Ujjawal's followers
-r.sadd(f"{user}:followers", "alice", "bob", "charlie", "diana")
+r.sadd(f"{user}:followers", "john", "bob", "charlie", "diana")
 
-# Raj's followers
+# Alice's followers
 r.sadd(f"{friend}:followers", "bob", "charlie", "eve", "frank")
 
 # Find mutual followers (people who follow both)
 mutual = r.sinter(f"{user}:followers", f"{friend}:followers")
 print(f"Ujjawal followers: {r.smembers(f'{user}:followers')}")
-print(f"Raj followers: {r.smembers(f'{friend}:followers')}")
+print(f"Alice followers: {r.smembers(f'{friend}:followers')}")
 print(f"Mutual followers: {mutual}")
 print(f"(These people could be good group chat members!)\n")
 
@@ -266,7 +266,7 @@ poll_id = "poll:best-language"
 r.delete(poll_id)
 
 # Simulate votes (some users vote twice, but only count once)
-voters = ["ujjawal", "raj", "priya", "ujjawal", "john", "priya", "raj"]
+voters = ["ujjawal", "alice", "priya", "ujjawal", "john", "priya", "alice"]
 
 for voter in voters:
     r.sadd(poll_id, voter)
@@ -341,3 +341,191 @@ Challenge: Build a complete recommendation engine:
 
 Modify the code and experiment!
 """)
+
+# ============================================================
+# PRACTICE: Solutions for Sets
+# ============================================================
+print("="*70)
+print("PRACTICE: Sets Exercises")
+print("="*70 + "\n")
+
+# 1. Create user skills and find common skills between 2 users
+print("1. User skills & common skills")
+print("-" * 70)
+alice_skills = "skills:alice"
+bob_skills = "skills:bob"
+r.delete(alice_skills, bob_skills)
+r.sadd(alice_skills, "python", "redis", "docker", "javascript")
+r.sadd(bob_skills, "python", "java", "docker", "aws")
+print("  Alice skills:", r.smembers(alice_skills))
+print("  Bob skills:", r.smembers(bob_skills))
+print("  Common skills:", r.sinter(alice_skills, bob_skills))
+print()
+
+# 2. Build a "people you may know" feature using set intersection
+print("2. People you may know")
+print("-" * 70)
+alice_friends = "friends:alice"
+bob_friends = "friends:bob"
+carol_friends = "friends:carol"
+r.delete(alice_friends, bob_friends, carol_friends)
+r.sadd(alice_friends, "bob", "carol", "dave")
+r.sadd(bob_friends, "alice", "emma", "frank")
+r.sadd(carol_friends, "alice", "gina", "harry")
+
+maybe_you_know = r.sunion(bob_friends, carol_friends)
+direct_friends = r.smembers(alice_friends)
+suggestions = sorted(set(maybe_you_know) - direct_friends - {"alice"})
+print("  Candidate suggestions for Alice:", suggestions)
+print()
+
+# 3. Create voting system with unique voters only
+print("3. Voting system with unique voters")
+print("-" * 70)
+poll_id = "poll:best-editor"
+r.delete(poll_id)
+votes = ["alice", "bob", "alice", "carol", "dave", "bob"]
+for voter in votes:
+  r.sadd(poll_id, voter)
+print("  Vote attempts:", votes)
+print("  Unique voters:", r.scard(poll_id))
+print("  Voter IDs:", r.smembers(poll_id))
+print()
+
+# 4. Track unique page visitors per day
+print("4. Unique page visitors per day")
+print("-" * 70)
+from datetime import date
+
+today = date.today().isoformat()
+visitors_key = f"visitors:/profile/{user}:{today}"
+r.delete(visitors_key)
+visitor_ips = ["10.0.0.1", "10.0.0.2", "10.0.0.1", "10.0.0.3"]
+for ip in visitor_ips:
+  r.sadd(visitors_key, ip)
+print("  Total attempts:", len(visitor_ips))
+print("  Unique visitors today:", r.scard(visitors_key))
+print()
+
+# 5. Build a tag system with tag suggestions
+print("5. Tag suggestions")
+print("-" * 70)
+post1 = "post:1:tags"
+post2 = "post:2:tags"
+post3 = "post:3:tags"
+r.delete(post1, post2, post3)
+r.sadd(post1, "python", "redis", "backend")
+r.sadd(post2, "javascript", "frontend", "react")
+r.sadd(post3, "python", "ml", "data")
+
+python_posts = r.sunion(post1, post3)
+print("  Suggested tags for python posts:", python_posts)
+print()
+
+# 6. Create spam filter with blocked IP addresses
+print("6. Spam filter")
+print("-" * 70)
+blocked_ips = f"{user}:blocked-ips"
+r.delete(blocked_ips)
+r.sadd(blocked_ips, "192.0.2.1", "203.0.113.5")
+incoming_ip = "203.0.113.5"
+print(f"  Is {incoming_ip} blocked?", bool(r.sismember(blocked_ips, incoming_ip)))
+print()
+
+# 7. Build mutual followers feature for social app
+print("7. Mutual followers")
+print("-" * 70)
+user_followers = f"{user}:followers"
+alice_followers = "alice-doe:followers"
+r.delete(user_followers, alice_followers)
+r.sadd(user_followers, "john", "bob", "charlie")
+r.sadd(alice_followers, "bob", "elena", "charlie")
+print("  Mutual followers:", r.sinter(user_followers, alice_followers))
+print()
+
+# 8. Track unique downloads by IP address
+print("8. Unique downloads by IP")
+print("-" * 70)
+download_key = "downloads:file123"
+r.delete(download_key)
+download_ips = ["8.8.8.8", "8.8.4.4", "8.8.8.8"]
+for ip in download_ips:
+  r.sadd(download_key, ip)
+print("  Unique downloaders:", r.scard(download_key))
+print("  IPs:", r.smembers(download_key))
+print()
+
+# 9. Create recommendation system based on common interests
+print("9. Recommendation system")
+print("-" * 70)
+interest_keys = {
+  "u1": "interests:u1",
+  "u2": "interests:u2",
+  "u3": "interests:u3",
+}
+r.delete(*interest_keys.values())
+r.sadd(interest_keys["u1"], "python", "redis", "ml")
+r.sadd(interest_keys["u2"], "python", "aws", "docker")
+r.sadd(interest_keys["u3"], "java", "redis", "docker")
+
+def common_interest_recommendations(target_key, candidate_keys):
+  results = []
+  for name, key in candidate_keys.items():
+    if key == target_key:
+      continue
+    common = r.sinter(target_key, key)
+    results.append((key, len(common), common))
+  results.sort(key=lambda item: item[1], reverse=True)
+  return results
+
+print("  Recommendations for u1:", common_interest_recommendations(interest_keys["u1"], interest_keys))
+print()
+
+# 10. Build deduplication system for emails
+print("10. Email deduplication")
+print("-" * 70)
+emails_key = "emails:subscribers"
+r.delete(emails_key)
+emails = ["A@EXAMPLE.com", "a@example.com", "bob@example.com"]
+for email in emails:
+  r.sadd(emails_key, email.strip().lower())
+print("  Unique normalized emails:", r.smembers(emails_key))
+print()
+
+# Challenge: complete recommendation engine
+print("CHALLENGE: Recommendation engine")
+print("-" * 70)
+skill_keys = {
+  "alice": "skills:engine:alice",
+  "bob": "skills:engine:bob",
+  "carol": "skills:engine:carol",
+  "dave": "skills:engine:dave",
+  "erin": "skills:engine:erin",
+}
+r.delete(*skill_keys.values())
+r.sadd(skill_keys["alice"], "python", "redis", "docker")
+r.sadd(skill_keys["bob"], "python", "aws")
+r.sadd(skill_keys["carol"], "java", "spring")
+r.sadd(skill_keys["dave"], "python", "ml")
+r.sadd(skill_keys["erin"], "redis", "docker")
+
+def suggest_friends(target_name, key_map, min_common=1):
+  target_key = key_map[target_name]
+  target_skills = r.smembers(target_key)
+  suggestion_key = f"suggestions:{target_name}"
+  r.delete(suggestion_key)
+  for other_name, other_key in key_map.items():
+    if other_name == target_name:
+      continue
+    common = r.sinter(target_key, other_key)
+    if len(common) >= min_common:
+      r.sadd(suggestion_key, other_name)
+  return target_skills, r.smembers(suggestion_key)
+
+skills, suggested = suggest_friends("alice", skill_keys)
+print("  Alice skills:", skills)
+print("  Suggested friends (unique):", suggested)
+print()
+
+print("ALL SETS PRACTICE PROBLEMS COMPLETED")
+print("="*70)

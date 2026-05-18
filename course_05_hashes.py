@@ -412,3 +412,228 @@ Challenge: Build complete user account system:
 
 Modify the code and experiment!
 """)
+
+
+# ============================================================
+# PRACTICE: Solutions for Hashes
+# ============================================================
+print("="*70)
+print("PRACTICE: Hashes Exercises")
+print("="*70 + "\n")
+
+# 1. Store complete user profile (20+ fields) in hash
+print("1. Complete user profile (20+ fields)")
+print("-" * 70)
+full_profile_key = f"{user}:profile-full"
+r.delete(full_profile_key)
+full_profile = {
+  "name": "Ujjawal Singh",
+  "username": "ujjawalsinghsde",
+  "email": "ujjawal@example.com",
+  "age": "25",
+  "location": "India",
+  "city": "Gurgaon",
+  "country": "IN",
+  "job_title": "Software Engineer",
+  "company": "Tech Startup",
+  "website": "https://ujjawal.dev",
+  "github": "ujjawalsinghsde",
+  "twitter": "@ujjawalsinghsde",
+  "linkedin": "linkedin.com/in/ujjawalsinghsde",
+  "bio": "Learning Redis and building apps",
+  "language": "en",
+  "timezone": "IST",
+  "theme": "dark",
+  "notifications": "enabled",
+  "two_factor": "enabled",
+  "subscription": "pro",
+  "plan_renewal": "2026-06-18",
+  "last_login": str(datetime.now()),
+  "status": "active"
+}
+r.hset(full_profile_key, mapping=full_profile)
+print("  Field count:", r.hlen(full_profile_key))
+print("  Name:", r.hget(full_profile_key, "name"))
+print("  GitHub:", r.hget(full_profile_key, "github"))
+print()
+
+# 2. Create product catalog with multiple products
+print("2. Product catalog with multiple products")
+print("-" * 70)
+catalog = "catalog:products"
+r.delete(catalog)
+products = {
+  "product:laptop-001": {"name": "MacBook Pro", "price": "1299.99", "stock": "45", "brand": "Apple"},
+  "product:phone-001": {"name": "Pixel 9", "price": "899.99", "stock": "80", "brand": "Google"},
+  "product:headphones-001": {"name": "Sony WH-1000XM5", "price": "349.99", "stock": "120", "brand": "Sony"},
+}
+for key, fields in products.items():
+  r.hset(key, mapping=fields)
+  r.hset(catalog, key, fields["name"])
+print("  Catalog keys:", r.hkeys(catalog))
+print("  Sample product:", r.hgetall("product:laptop-001"))
+print()
+
+# 3. Build shopping cart using hashes
+print("3. Shopping cart using hashes")
+print("-" * 70)
+cart_key = f"{user}:cart"
+r.delete(cart_key)
+r.hset(cart_key, mapping={
+  "product:laptop-001": "1",
+  "product:mouse-001": "2",
+  "product:keyboard-001": "1"
+})
+print("  Cart items:")
+for item, qty in r.hgetall(cart_key).items():
+  print(f"   {item}: {qty}")
+print()
+
+# 4. Store settings for 5 different apps
+print("4. Settings for 5 apps")
+print("-" * 70)
+apps = {
+  "app:mail:settings": {"theme": "light", "signature": "Best, Ujjawal"},
+  "app:notes:settings": {"font_size": "14", "sync": "enabled"},
+  "app:music:settings": {"quality": "high", "autoplay": "off"},
+  "app:calendar:settings": {"week_start": "monday", "reminders": "enabled"},
+  "app:chat:settings": {"notifications": "enabled", "sounds": "on"},
+}
+for key, fields in apps.items():
+  r.hset(key, mapping=fields)
+print("  Stored app settings hashes:")
+for key in apps:
+  print(f"   {key}: {r.hgetall(key)}")
+print()
+
+# 5. Create account ledger with balance tracking
+print("5. Account ledger with balance tracking")
+print("-" * 70)
+ledger_key = f"{user}:ledger"
+r.delete(ledger_key)
+r.hset(ledger_key, mapping={"balance": "1000.50", "deposits": "0", "withdrawals": "0"})
+r.hincrbyfloat(ledger_key, "balance", 250.25)
+r.hincrby(ledger_key, "deposits", 1)
+r.hincrbyfloat(ledger_key, "balance", -125.75)
+r.hincrby(ledger_key, "withdrawals", 1)
+print("  Ledger:", r.hgetall(ledger_key))
+print()
+
+# 6. Build form submission storage system
+print("6. Form submission storage system")
+print("-" * 70)
+form_key = "form:contact:2026-05-18"
+r.delete(form_key)
+r.hset(form_key, mapping={
+  "name": "Ujjawal Singh",
+  "email": "ujjawal@example.com",
+  "subject": "Redis question",
+  "message": "How do hashes help partial updates?",
+  "submitted_at": str(datetime.now()),
+  "status": "pending"
+})
+print("  Submission:", r.hgetall(form_key))
+print()
+
+# 7. Store student grades across subjects
+print("7. Student grades across subjects")
+print("-" * 70)
+grades_key = "student:ujjawal:grades"
+r.delete(grades_key)
+r.hset(grades_key, mapping={
+  "math": "95",
+  "english": "88",
+  "science": "91",
+  "history": "84",
+  "computer": "98"
+})
+r.hincrby(grades_key, "math", 1)
+print("  Grades:", r.hgetall(grades_key))
+print()
+
+# 8. Create API response caching with hashes
+print("8. API response caching with hashes")
+print("-" * 70)
+api_cache_key = "cache:api:user:ujjawal"
+r.delete(api_cache_key)
+r.hset(api_cache_key, mapping={
+  "status": "200",
+  "name": "Ujjawal Singh",
+  "followers": "150",
+  "following": "200",
+  "cached_at": str(datetime.now())
+})
+print("  Cached API response:", r.hgetall(api_cache_key))
+print()
+
+# 9. Track inventory with stock counters
+print("9. Inventory with stock counters")
+print("-" * 70)
+inventory_key = "inventory:warehouse:1"
+r.delete(inventory_key)
+r.hset(inventory_key, mapping={"laptop": "45", "phone": "80", "mouse": "150"})
+r.hincrby(inventory_key, "laptop", -2)
+r.hincrby(inventory_key, "phone", -5)
+r.hincrby(inventory_key, "mouse", 10)
+print("  Inventory:", r.hgetall(inventory_key))
+print()
+
+# 10. Build user preferences system
+print("10. User preferences system")
+print("-" * 70)
+prefs_key = f"{user}:preferences"
+r.delete(prefs_key)
+r.hset(prefs_key, mapping={
+  "theme": "dark",
+  "language": "en",
+  "notifications": "enabled",
+  "email_digest": "weekly",
+  "privacy": "friends_only",
+  "marketing_emails": "off"
+})
+print("  Preferences:", r.hgetall(prefs_key))
+print()
+
+# Challenge: complete user account system
+print("CHALLENGE: Complete user account system")
+print("-" * 70)
+account_user_id = "user:1001"
+profile_hash = f"{account_user_id}:profile"
+settings_hash = f"{account_user_id}:settings"
+stats_hash = f"{account_user_id}:stats"
+account_hash = f"{account_user_id}:account"
+
+for key in (profile_hash, settings_hash, stats_hash, account_hash):
+  r.delete(key)
+
+r.hset(profile_hash, mapping={
+  "name": "Ujjawal Singh",
+  "email": "ujjawal@example.com",
+  "age": "25",
+  "location": "India"
+})
+r.hset(settings_hash, mapping={
+  "theme": "dark",
+  "language": "en",
+  "notifications": "enabled"
+})
+r.hset(stats_hash, mapping={
+  "posts": "12",
+  "followers": "150",
+  "likes": "980"
+})
+r.hset(account_hash, mapping={
+  "balance": "250.00",
+  "credits": "42",
+  "subscription": "pro"
+})
+
+print("  Profile:", r.hgetall(profile_hash))
+print("  Settings:", r.hgetall(settings_hash))
+print("  Stats:", r.hgetall(stats_hash))
+print("  Account:", r.hgetall(account_hash))
+print("  Instant field lookup:", r.hget(profile_hash, "email"), r.hget(account_hash, "subscription"))
+print()
+
+print("ALL HASH PRACTICE PROBLEMS COMPLETED")
+print("="*70)

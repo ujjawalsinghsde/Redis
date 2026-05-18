@@ -422,3 +422,169 @@ print("""
 
 Modify the code and experiment!
 """)
+
+# ============================================================
+# PRACTICE: Solutions
+# ============================================================
+print("="*70)
+print("PRACTICE: Solutions")
+print("="*70 + "\n")
+
+# Task 1: Store Ujjawal Singh's programming languages with MSET
+print("1. Store Programming Languages with MSET")
+print("-" * 70)
+
+languages = {
+    f"{user}:lang:1": "Python",
+    f"{user}:lang:2": "Java",
+    f"{user}:lang:3": "Go",
+    f"{user}:lang:4": "C++"
+}
+r.mset(languages)
+
+lang_keys = [f"{user}:lang:1", f"{user}:lang:2", f"{user}:lang:3", f"{user}:lang:4"]
+langs = r.mget(lang_keys)
+print(f"Languages stored: {', '.join(langs)}\n")
+
+# Task 2: Create a post view counter and increment it 100 times
+print("2. Post View Counter - Increment 100 Times")
+print("-" * 70)
+
+post_views_key = f"{user}:post:1:views"
+r.set(post_views_key, 0)
+
+for i in range(1, 101):
+    r.incr(post_views_key)
+
+total_views = r.get(post_views_key)
+print(f"Total views after 100 increments: {total_views}")
+print(f"Final counter value: {r.get(post_views_key)}\n")
+
+# Task 3: Store a JSON object with user preferences, retrieve and parse it
+print("3. Store & Parse JSON - User Preferences")
+print("-" * 70)
+
+preferences = {
+    'theme': 'dark',
+    'notifications': True,
+    'language': 'en',
+    'privacy': 'public',
+    'email_updates': False
+}
+
+r.set(f"{user}:preferences", json.dumps(preferences))
+stored = json.loads(r.get(f"{user}:preferences"))
+
+print("Stored preferences:")
+for key, value in stored.items():
+    print(f"  {key}: {value}\n")
+
+# Task 4: Implement a simple login session with 30-minute expiration
+print("4. Login Session with 30-Minute Expiration")
+print("-" * 70)
+
+session_id = "sess_user_ujjawal_12345"
+expiry_seconds = 30 * 60  # 30 minutes
+
+r.setex(f"{user}:session:{session_id}", expiry_seconds, json.dumps({
+    'user_id': user,
+    'login_time': '2026-05-18 10:30:00',
+    'ip_address': '192.168.1.1'
+}))
+
+session_ttl = r.ttl(f"{user}:session:{session_id}")
+print(f"Session ID: {session_id}")
+print(f"TTL: {session_ttl} seconds ({session_ttl // 60} minutes)")
+print(f"Session data: {r.get(f'{user}:session:{session_id}')}\n")
+
+# Task 5: Create a rate limiter that allows 5 requests per minute
+print("5. Rate Limiter - 5 Requests per Minute")
+print("-" * 70)
+
+def rate_limit_5_per_min(user_id, limit=5, window=60):
+    """Allow 5 requests per minute"""
+    key = f"rate:{user_id}:minute"
+    current = r.get(key)
+    
+    if current is None:
+        r.setex(key, window, 1)
+        return True, 1
+    
+    current_count = int(current)
+    if current_count >= limit:
+        return False, current_count
+    else:
+        r.incr(key)
+        return True, current_count + 1
+
+print("Testing rate limiter (allowing 5 per minute)...")
+for i in range(8):
+    allowed, count = rate_limit_5_per_min(user, limit=5)
+    status = "[OK] ALLOWED" if allowed else "[BLOCKED]"
+    print(f"  Request {i+1}: {status} ({count}/5)")
+print()
+
+# Task 6: Store your GitHub profile as JSON and display it
+print("6. Store & Display GitHub Profile (JSON)")
+print("-" * 70)
+
+github_profile = {
+    'username': 'ujjawal-singh',
+    'name': 'Ujjawal Singh',
+    'bio': 'Redis Enthusiast | Software Engineer',
+    'followers': 234,
+    'following': 120,
+    'public_repos': 45,
+    'company': 'Tech Startup',
+    'location': 'India',
+    'blog': 'blog.ujjawal.dev',
+    'twitter': '@ujjawalsinghsde',
+    'skills': ['Python', 'Redis', 'Java', 'Go']
+}
+
+r.set(f"{user}:github-profile", json.dumps(github_profile))
+profile_data = json.loads(r.get(f"{user}:github-profile"))
+
+print("GitHub Profile:")
+for key, value in profile_data.items():
+    print(f"  {key}: {value}\n")
+
+# Task 7: Create a distributed lock for a database migration
+print("7. Distributed Lock - Database Migration")
+print("-" * 70)
+
+def acquire_migration_lock(migration_name, timeout=300):
+    """Acquire lock for database migration (5 minutes)"""
+    lock_key = f"migration:lock:{migration_name}"
+    acquired = r.setnx(lock_key, json.dumps({
+        'started': '2026-05-18 10:30:00',
+        'process_id': 'process_123'
+    }))
+    if acquired:
+        r.expire(lock_key, timeout)
+        return True
+    return False
+
+def release_migration_lock(migration_name):
+    """Release migration lock"""
+    lock_key = f"migration:lock:{migration_name}"
+    r.delete(lock_key)
+
+# Simulate migration
+migration = "add_indexes_to_users_table"
+print(f"Attempting to acquire lock for migration: {migration}")
+
+if acquire_migration_lock(migration):
+    print("[OK] Lock acquired! Running migration...")
+    lock_key = f"migration:lock:{migration}"
+    print(f"  Lock data: {r.get(lock_key)}")
+    print("  [Simulating migration execution...]")
+    print("[OK] Migration completed")
+    release_migration_lock(migration)
+    print("[OK] Lock released\n")
+else:
+    print("[BLOCKED] Another process already running this migration!\n")
+
+print("="*70)
+print("ALL PRACTICE PROBLEMS COMPLETED!")
+print("="*70)

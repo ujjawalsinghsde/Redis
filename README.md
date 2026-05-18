@@ -40,8 +40,8 @@
 
 ```bash
 # Step 1: Verify Redis is running
-docker-compose up -d
-docker-compose ps
+docker compose up -d
+docker compose ps
 
 # Step 2: Run your first course
 python course_01_foundations.py
@@ -242,7 +242,7 @@ r.hgetall('user:1')  # Get all fields
 
 **5. SORTED SETS** - Leaderboards, rankings
 ```python
-r.zadd('leaderboard', {'ujjawal': 100, 'raj': 90})
+r.zadd('leaderboard', {'ujjawal': 100, 'alice': 90})
 r.zrevrange('leaderboard', 0, 9)  # Top 10
 ```
 ✅ Course 6 - Leaderboards, ratings, top N queries

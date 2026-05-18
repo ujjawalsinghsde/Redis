@@ -73,7 +73,7 @@ r.flushdb()
 print(__doc__)
 
 print("\n" + "="*70)
-print("LISTS - PRACTICAL EXAMPLES WITH UJJAWAL SINGH")
+print("LISTS - PRACTICAL EXAMPLES")
 print("="*70 + "\n")
 
 user = "ujjawal-singh"
@@ -426,3 +426,216 @@ Challenge: Build a complete chat system:
 
 Modify the code and experiment!
 """)
+
+
+# ============================================================
+# PRACTICE: Solutions
+# ============================================================
+print("="*70)
+print("PRACTICE: Lists Exercises")
+print("="*70 + "\n")
+
+# Task 1: Create a task queue with 100 tasks, process them all
+print("1. Task queue with 100 tasks - produce and consume")
+print("-" * 70)
+big_queue = f"{user}:big-tasks"
+r.delete(big_queue)
+
+for i in range(1, 101):
+  r.rpush(big_queue, json.dumps({'id': i, 'job': f'job_{i}'}))
+
+print(f"  Produced {r.llen(big_queue)} tasks")
+processed = 0
+while True:
+  job = r.lpop(big_queue)
+  if not job:
+    break
+  processed += 1
+
+print(f"  Processed {processed} tasks, remaining: {r.llen(big_queue)}\n")
+
+# Task 2: Activity feed that keeps only last 50 posts
+print("2. Activity feed - keep only last 50 posts")
+print("-" * 70)
+feed_key = f"{user}:activity:50"
+r.delete(feed_key)
+
+for i in range(60):
+  post = {'id': i, 'content': f'Post #{i}'}
+  r.lpush(feed_key, json.dumps(post))
+  # keep only last 50 posts
+  r.ltrim(feed_key, 0, 49)
+
+print(f"  Posts kept: {r.llen(feed_key)} (should be 50)")
+first = json.loads(r.lindex(feed_key, 0))
+last = json.loads(r.lindex(feed_key, -1))
+print(f"  Newest post id: {first['id']}, Oldest kept id: {last['id']}\n")
+
+# Task 3: Notification system that shows last 5 messages
+print("3. Notification system - last 5 messages")
+print("-" * 70)
+notif_key = f"{user}:notifs:5"
+r.delete(notif_key)
+
+def send_notification(msg):
+  r.lpush(notif_key, json.dumps({'time': str(datetime.now()), 'msg': msg}))
+  r.ltrim(notif_key, 0, 4)
+
+msgs = [
+  'Welcome!', 'You have a new follower', 'Someone liked your post',
+  'New comment on your post', 'Your repo got a star', 'Reminder: Meeting at 3PM'
+]
+for m in msgs:
+  send_notification(m)
+
+print(f"  Notifications stored (most recent first): {r.llen(notif_key)}")
+for i, n in enumerate(r.lrange(notif_key, 0, -1), 1):
+  print(f"   {i}.", json.loads(n)['msg'])
+print()
+
+# Task 4: Message queue with different priorities
+print("4. Message queue with priorities")
+print("-" * 70)
+high = f"{user}:msg:high"
+normal = f"{user}:msg:normal"
+low = f"{user}:msg:low"
+for k in (high, normal, low):
+  r.delete(k)
+
+def add_msg(task, priority='normal'):
+  key = {'high': high, 'normal': normal, 'low': low}[priority]
+  r.rpush(key, json.dumps({'task': task, 'priority': priority}))
+
+add_msg('urgent_fix', 'high')
+add_msg('feature_work', 'normal')
+add_msg('minor_cleanup', 'low')
+add_msg('security_patch', 'high')
+
+print("  Queue lengths:")
+print("   high:", r.llen(high), " normal:", r.llen(normal), " low:", r.llen(low))
+
+print("  Processing in priority order:")
+for _ in range(r.llen(high) + r.llen(normal) + r.llen(low)):
+  job = None
+  for q in (high, normal, low):
+    j = r.lpop(q)
+    if j:
+      job = json.loads(j)
+      print("   Processing:", job['task'], "(priority=", job['priority'], ")")
+      break
+  if not job:
+    break
+print()
+
+# Task 5: Rate limiter using LPUSH + LTRIM (sliding window)
+print("5. Rate limiter (sliding window) - allow 5 requests per 60s")
+print("-" * 70)
+rl_key = f"rate:{user}:sliding"
+r.delete(rl_key)
+
+import time as _t
+
+def allow_request_sliding(user_id, limit=5, window=60):
+  key = f"rate:{user_id}:sliding"
+  now = int(_t.time())
+  # Push current timestamp at head
+  r.lpush(key, now)
+  # Remove timestamps older than window (we'll trim by count and then check oldest)
+  r.ltrim(key, 0, limit - 1)
+  count = r.llen(key)
+  if count < limit:
+    return True, count
+  # When count == limit, check oldest timestamp
+  oldest = int(r.lindex(key, -1))
+  if now - oldest < window:
+    return False, count
+  return True, count
+
+print("  Simulating 8 rapid requests:")
+for i in range(8):
+  ok, c = allow_request_sliding(user, limit=5, window=60)
+  print(f"   Request {i+1}:", "ALLOWED" if ok else "BLOCKED", f"({c}/5)")
+  _t.sleep(0.2)
+print()
+
+# Task 6: Undo/Redo stack (2 lists)
+print("6. Undo/Redo stack simulation")
+print("-" * 70)
+undo = f"{user}:undo"
+redo = f"{user}:redo"
+for k in (undo, redo):
+  r.delete(k)
+
+def do_action(action):
+  # push to undo and clear redo
+  r.lpush(undo, action)
+  r.delete(redo)
+
+def undo_action():
+  a = r.lpop(undo)
+  if a:
+    r.lpush(redo, a)
+    return a
+  return None
+
+def redo_action():
+  a = r.lpop(redo)
+  if a:
+    r.lpush(undo, a)
+    return a
+  return None
+
+do_action('type:Hello')
+do_action('type:World')
+do_action('delete:5')
+
+print("  Undoing two actions:")
+print("   undone:", undo_action())
+print("   undone:", undo_action())
+print("  Redoing one action:")
+print("   redone:", redo_action())
+print()
+
+# Task 7: Leaderboard using lists (sorted by score via Python)
+print("7. Leaderboard using lists (sorted client-side)")
+print("-" * 70)
+lb_key = f"{user}:leaderboard:list"
+r.delete(lb_key)
+
+players = [
+  ('alice', 150), ('bob', 200), ('charlie', 180), ('diana', 220), ('ed', 175)
+]
+for name, score in players:
+  # store as JSON to preserve structure
+  r.rpush(lb_key, json.dumps({'user': name, 'score': score}))
+
+all_players = [json.loads(x) for x in r.lrange(lb_key, 0, -1)]
+sorted_players = sorted(all_players, key=lambda p: p['score'], reverse=True)
+
+print("  Top players:")
+for i, p in enumerate(sorted_players, 1):
+  print(f"   {i}. {p['user']} - {p['score']}")
+print()
+
+# Challenge: Chat system - keep last 100 messages per room
+print("CHALLENGE: Simple chat system (last 100 messages)")
+print("-" * 70)
+def send_message(room, sender, text):
+  key = f"chat:{room}:messages"
+  msg = json.dumps({'time': str(datetime.now()), 'from': sender, 'text': text})
+  r.lpush(key, msg)
+  r.ltrim(key, 0, 99)  # keep last 100 messages
+
+chat_room = 'general'
+chat_key = f"chat:{chat_room}:messages"
+r.delete(chat_key)
+
+for i in range(105):
+  send_message(chat_room, f'user{i%5}', f'Message number {i}')
+
+print(f"  Messages stored: {r.llen(chat_key)} (should be 100)")
+print("  Most recent message:", json.loads(r.lindex(chat_key, 0))['text'])
+print("  Oldest kept message:", json.loads(r.lindex(chat_key, -1))['text'])
+
+print("\nALL LIST PRACTICE PROBLEMS COMPLETED")
+print("="*70)
